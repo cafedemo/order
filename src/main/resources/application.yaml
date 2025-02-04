@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: cafe-order
+mongodb:
+  host: localhost
+  port: 27017
+  database: order
+  collection: orders
+  username: mongoadmin
+  password: secret
+kafka:
+  bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
+  security-protocol: PLAINTEXT
+  consumer:
+    group-id: cafe-order-group
+    auto-offset-reset: earliest
+    key-serialization: org.apache.kafka.common.serialization.StringDeserializer
+    value-serialization: org.apache.kafka.common.serialization.StringDeserializer
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer

@@ -1,0 +1,33 @@
+@url=http://localhost:8080
+
+### GET Orders
+GET {{url}}/order
+
+### GET Specific order
+GET {{url}}/order/1
+
+### POST Create order
+POST {{url}}/order/
+Content-Type: application/json
+Accept: application/json
+
+{
+    "customerId": "Order 2",
+    "orderId": "order2",
+    "orderStatus": "Initial2",
+    "baristaId": "barista2",
+    "orderItems": [
+        {
+            "itemId": "item1",
+            "quantity": 1,
+            "price": 10,
+            "itemName": "Item 1"
+        },
+        {
+            "itemId": "item2",
+            "quantity": 1,
+            "price": 10,
+            "itemName": "Item 2"
+        }
+    ]
+}

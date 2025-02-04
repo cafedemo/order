@@ -1,0 +1,92 @@
+package tut.dushyant.demo.cafeapp.order.svc;
+
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.bson.Document;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import tut.dushyant.demo.cafeapp.order.dto.OrderDetails;
+import tut.dushyant.demo.cafeapp.order.util.OrderCafeException;
+
+import java.util.List;
+import java.util.Objects;
+
+@Service
+public class OrderService {
+
+    private final Producer<String, String> producer;
+    private final MongoDatabase mongoDatabase;
+    private final TransactionTemplate transactionTemplate;
+
+    public OrderService(ProducerFactory<String, String> producerFactory,
+                        MongoDatabase mongoDatabase,
+                        PlatformTransactionManager transactionManager) {
+        this.producer = producerFactory.createProducer();
+        this.mongoDatabase = mongoDatabase;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setTimeout(30);
+    }
+
+    /**
+     * This service uses outbox pattern to first add order to mongo
+     * and then send message to kafka for places order.
+     * If any of mongo or Kafka fails, it will rollback the transaction.
+     */
+    public OrderDetails placeOrder(OrderDetails orderDetails) {
+        return this.transactionTemplate.execute(status -> {
+            // add order to mongo
+            orderDetails.setId(
+                    Objects.requireNonNull(
+                            mongoDatabase.getCollection("orders")
+                                    .insertOne(orderDetails.toDocument())
+                                    .getInsertedId()
+                    ).asObjectId().getValue());
+
+            // send message to kafka
+            producer.send(new ProducerRecord<>(
+                    "order-topic",
+                    orderDetails.getOrderId(),
+                    orderDetails.toString()
+            ), (metadata, exception) -> {
+                if (exception != null) {
+                    producer.abortTransaction();
+                    throw new OrderCafeException("Failed to send message to Kafka", exception);
+                }
+            });
+
+            return orderDetails;
+        });
+    }
+
+    public OrderDetails getOrderDetails(String orderId) {
+        // fetch order from mongo
+        MongoCollection<Document> collection = mongoDatabase.getCollection("orders");
+        return OrderDetails.fromDocument(
+                Objects.requireNonNull(
+                        collection.find(new Document("orderId", orderId)).first()
+                )
+        );
+    }
+
+    /**
+     * This services fetches all orders from mongo database.
+     * @return list of orders
+     */
+    public List<OrderDetails> getOrders() {
+        // fetch all orders from mongo
+        MongoCollection<Document> collection = mongoDatabase.getCollection("orders");
+        List<OrderDetails> orders = new java.util.ArrayList<>();
+        try (MongoCursor<Document> cursor = collection.find().iterator()) {
+            while (cursor.hasNext()) {
+                orders.add(OrderDetails.fromDocument(cursor.next()));
+            }
+        }
+
+        return orders;
+    }
+}

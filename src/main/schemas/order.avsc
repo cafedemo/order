@@ -1,0 +1,56 @@
+{
+  "type": "record",
+  "name": "OrderDetails",
+  "namespace": "tut.dushyant.demo.cafeapp.order.dto",
+  "fields": [
+    {
+      "name": "id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "customerId",
+      "type": "string"
+    },
+    {
+      "name": "orderId",
+      "type": "string"
+    },
+    {
+      "name": "orderStatus",
+      "type": "string"
+    },
+    {
+      "name": "baristaId",
+      "type": "string"
+    },
+    {
+      "name": "orderItems",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItem",
+          "fields": [
+            {
+              "name": "itemId",
+              "type": "string"
+            },
+            {
+              "name": "itemName",
+              "type": "string"
+            },
+            {
+              "name": "quantity",
+              "type": "int"
+            },
+            {
+              "name": "price",
+              "type": "double"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
