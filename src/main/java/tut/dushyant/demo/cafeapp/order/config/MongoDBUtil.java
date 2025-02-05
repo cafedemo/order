@@ -26,9 +26,9 @@ public class MongoDBUtil {
     @Bean
     MongoClient createMongoClient() {
         log.atInfo().log(mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials() + "@"
-                + mongoDBConfig.getHost() + "/perfsbcp3_sbcp_order" + mongoDBConfig.getOptions());  
+                + mongoDBConfig.getHost() + "/perfsbcp3_sbcp_order" + mongoDBConfig.getOptions());
         return MongoClients.create(
-            mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials() + "@"
+            mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials()
                 + mongoDBConfig.getHost() + "/perfsbcp3_sbcp_order" + mongoDBConfig.getOptions()
         );
     }

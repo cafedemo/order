@@ -5,10 +5,9 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-import tut.dushyant.demo.cafeapp.order.config.KafkaConfig;
 import tut.dushyant.demo.cafeapp.order.config.MongoDBConfig;
 
-@EnableConfigurationProperties({KafkaConfig.class, MongoDBConfig.class})
+@EnableConfigurationProperties({MongoDBConfig.class})
 @SpringBootApplication
 public class OrderApplication {
 

@@ -4,7 +4,6 @@ metadata:
   name: cafe-order-app
   namespace: sbcp
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: cafe-order
@@ -14,41 +13,91 @@ spec:
         app: cafe-order
     spec:
       containers:
-        - name: cafe-order
-          image: 461232396433.dkr.ecr.eu-west-1.amazonaws.com/test/cafe_order:1.0 
-          ports:
-            - containerPort: 8080
-          env:
-            - name: SPRING_APP_HEALTHCHECK
-              value: "false"
-            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              valueFrom:
-                configMapKeyRef:
-                  key: KAFKA_BOOTSTRAP_SERVERS
-                  name: kafka-config
-            - name: SPRING_KAFKA_PRODUCER_KEY_SERIALIZER
-              value: "org.apache.kafka.common.serialization.StringSerializer"
-            - name: SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER
-              value: "org.apache.kafka.common.serialization.StringSerializer"
-            - name: SPRING_MONGODB_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: MONGODB_HOST
-                  name: environment-config
-            - name: SPRING_MONGODB_OPTIONS
-              valueFrom:
-                configMapKeyRef:
-                  key: MONGODB_OPTIONS
-                  name: environment-config
-            - name: SPRING_MONGODB_PROTOCOL
-              valueFrom:
-                configMapKeyRef:
-                  key: MONGODB_PROTOCOL
-                  name: environment-config
-            - name: SPRING_MONGODB_CREDENTIALS
-              valueFrom:
-                configMapKeyRef:
-                  key: MONGODB_CREDENTIALS
-                  name: environment-config
+      - env:
+        - name: APP_HEALTHCHECK
+          value: "true"
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              key: KAFKA_BOOTSTRAP_SERVERS
+              name: kafka-config
+        - name: SPRING_KAFKA_PRODUCER_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              key: KAFKA_BOOTSTRAP_SERVERS
+              name: kafka-config
+        - name: SPRING_KAFKA_PRODUCER_PROPERTIES_ENABLE_IDEMPOTENCE
+          value: "false"
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              key: MONGODB_HOST
+              name: environment-config
+        - name: MONGODB_OPTIONS
+          valueFrom:
+            configMapKeyRef:
+              key: MONGODB_OPTIONS
+              name: environment-config
+        - name: MONGODB_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              key: MONGODB_PROTOCOL
+              name: environment-config
+        - name: MONGODB_CREDENTIALS
+          valueFrom:
+            configMapKeyRef:
+              key: MONGODB_CREDENTIALS
+              name: environment-config
+        image: 461232396433.dkr.ecr.eu-west-1.amazonaws.com/test/cafe_order:1.10
+        imagePullPolicy: IfNotPresent
+        name: cafe-order
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /check
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 8
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        startupProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /check
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 4
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /check
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 6
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
       serviceAccount: sbcp-busybox-sa
       serviceAccountName: sbcp-busybox-sa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cafe-order-app
+  namespace: sbcp
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: cafe-order
+  type: ClusterIP

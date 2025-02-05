@@ -1,6 +1,31 @@
 spring:
   application:
     name: cafe-order
+  kafka:
+    security:
+      protocol: SSL
+    ssl:
+      key-store-location: file:/project/sbcp.p12
+      key-store-password: sbs123
+      key-store-type: PKCS12
+      trust-store-location: file:/project/sbcp.p12
+      trust-store-password: sbs123
+      trust-store-type: PKCS12
+    producer:
+      security:
+        protocol: SSL
+      properties:
+        enable:
+          idempotence: false
+      ssl:
+        key-store-location: file:/project/sbcp.p12
+        key-store-password: sbs123
+        key-store-type: PKCS12
+        trust-store-location: file:/project/sbcp.p12
+        trust-store-password: sbs123
+        trust-store-type: PKCS12
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 mongodb:
   host: localhost
   port: 27017
@@ -8,9 +33,3 @@ mongodb:
   collection: orders
   username: mongoadmin
   password: secret
-kafka:
-  bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
-  security-protocol: PLAINTEXT
-  producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: org.apache.kafka.common.serialization.StringSerializer
