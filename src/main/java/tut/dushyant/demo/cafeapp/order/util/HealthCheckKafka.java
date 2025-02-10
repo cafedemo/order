@@ -3,6 +3,8 @@ package tut.dushyant.demo.cafeapp.order.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.KafkaFuture;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaAdmin;
@@ -12,8 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 /**
  * This class acts as health check with kubernetes readiness probe.
@@ -39,7 +45,7 @@ public class HealthCheckKafka {
     }
 
     private boolean isKafkaUp() {
-        //get list of topics from Kadka.
+        //get list of topics from Kafka.
         //if the list is not empty, return true
         //else return false
         if (!checkFlag) {
@@ -47,10 +53,10 @@ public class HealthCheckKafka {
         }
 
         try (AdminClient client = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
-            client.listTopics().names().get();
-            return true;
-        } catch (Exception e) {
-            log.error("Error while checking kafka health", e);
+            Map<String, KafkaFuture<TopicDescription>> topicMap = client.describeTopics(List.of("order-topic")).topicNameValues();
+            return Objects.equals(topicMap.get("order-topic").get().name(), "order-topic");
+        } catch (InterruptedException | ExecutionException ex) {
+            log.error("Error while checking kafka health", ex);
             return false;
         }
     }
