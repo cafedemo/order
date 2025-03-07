@@ -11,4 +11,5 @@ public class MongoDBConfig {
     private String options;
     private String protocol;
     private String credentials;
+    private String database;
 }

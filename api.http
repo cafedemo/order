@@ -1,4 +1,4 @@
-@url=https://apitest.sbcp.perfsbcp3.sbcp.io
+@url=http://localhost:8080
 ### GET Orders
 GET {{url}}/order
 

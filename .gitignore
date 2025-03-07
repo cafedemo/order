@@ -38,3 +38,6 @@ out/
 
 .idea/
 *.iml
+
+## observability
+ops/obs/tempo-data/

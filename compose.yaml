@@ -1,25 +1,93 @@
 services:
-  app:
-    image: order:latest
-    container_name: app
-    environment:
-      - SPRING_APP_HEALTHCHECK=false
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka1:29092,kafka2:29093,kafka3:9094
-      - SPRING_KAFKA_SECURITY_PROTOCOL=PLAINTEXT
-      - SPRING_KAFKA_PRODUCER_KEY_SERIALIZER=org.apache.kafka.common.serialization.StringSerializer
-      - SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER=org.apache.kafka.common.serialization.StringSerializer
-      - SPRING_MONGODB_HOST=mongodb
-      - SPRING_MONGODB_PORT=27017
-      - SPRING_MONGODB_DATABASE=order
-      - SPRING_MONGODB_COLLECTION=orders
-      - SPRING_MONGODB_USERNAME=mongoadmin
-      - SPRING_MONGODB_PASSWORD=secret
-    ports:
-      - "8080:8080"
+  init:
+    image: &tempoImage grafana/tempo:latest
+    user: root
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/lib/tempo"
+    volumes:
+      - ./ops/obs/tempo-data:/var/lib/tempo
     networks:
     - cafe
+  fluentbit:
+    image: fluent/fluent-bit
+    container_name: fluentbit
+    volumes:
+      - ./ops/obs/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml
+    depends_on:
+      - loki
+    networks:
+    - cafe
+  memcached:
+    image: memcached:1.6.29
+    container_name: memcached
+    ports:
+      - "11211:11211"
+    environment:
+      - MEMCACHED_MAX_MEMORY=64m
+      - MEMCACHED_THREADS=4
+    networks:
+    - cafe
+  tempo:
+    image: *tempoImage
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./ops/obs/tempo.yaml:/etc/tempo.yaml
+      - ./ops/obs/tempo-data:/var/tempo
+    ports:
+      - "14268:14268"  # jaeger ingest
+      - "3200:3200"   # tempo
+      - "9095:9095" # tempo grpc
+      - "4317:4317"  # otlp grpc
+      - "4318:4318"  # otlp http
+      - "9411:9411"   # zipkin
+    depends_on:
+      - init
+      - memcached
+    networks:
+    - cafe
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus.yaml
+      - --web.enable-otlp-receiver
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+    volumes:
+    - ./ops/obs/prometheus.yaml:/etc/prometheus.yaml
+    ports:
+    - "9090:9090"
+    networks:
+    - cafe
+  loki:
+    image: 'grafana/loki:latest'
+    container_name: 'loki'
+    ports:
+    - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+    - cafe
+  grafana:
+    image: 'grafana/grafana:latest'
+    container_name: 'grafana'
+    volumes:
+      - ./ops/obs/grafana:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor metricsSummary
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
+    ports:
+      - "3000:3000"
+    networks:
+      - cafe
   mongodb:
     image: mongo:latest
+    container_name: mongodb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=mongoadmin
       - MONGO_INITDB_ROOT_PASSWORD=secret

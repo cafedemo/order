@@ -1,6 +1,5 @@
 package tut.dushyant.demo.cafeapp.order.util;
 
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -11,15 +10,12 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
 
 /**
  * This class acts as health check with kubernetes readiness probe.
@@ -45,9 +41,9 @@ public class HealthCheckKafka {
     }
 
     private boolean isKafkaUp() {
-        //get list of topics from Kafka.
-        //if the list is not empty, return true
-        //else return false
+        //describe topic from kafka
+        //if unable to describe topic return false
+        //else return true
         if (!checkFlag) {
             return false;
         }

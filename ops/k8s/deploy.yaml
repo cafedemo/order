@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cafe-order-app
-  namespace: sbcp
+  namespace: obaas-1 
 spec:
   selector:
     matchLabels:
@@ -84,14 +84,14 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-      serviceAccount: sbcp-busybox-sa
-      serviceAccountName: sbcp-busybox-sa
+      serviceAccount: sbcp-cafeapp-sa
+      serviceAccountName: sbcp-cafeapp-sa
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: cafe-order-app
-  namespace: sbcp
+  namespace: obaas-1
 spec:
   ports:
   - name: http

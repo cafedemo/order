@@ -1,0 +1,11 @@
+pipeline:
+  inputs:
+  - name: opentelemetry
+    listen: 0.0.0.0
+    port: 4318
+  outputs:
+  - name: loki
+    match: '*'
+    labels: 'job=fluentbit'
+    host: local
+    port: 3100

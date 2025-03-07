@@ -25,27 +25,25 @@ public class MongoDBUtil {
 
     @Bean
     MongoClient createMongoClient() {
-        log.atInfo().log(mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials() + "@"
-                + mongoDBConfig.getHost() + "/perfsbcp3_sbcp_order" + mongoDBConfig.getOptions());
-        return MongoClients.create(
-            mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials()
-                + mongoDBConfig.getHost() + "/perfsbcp3_sbcp_order" + mongoDBConfig.getOptions()
-        );
+        String connStr = mongoDBConfig.getProtocol()+"://" + mongoDBConfig.getCredentials() + "@"
+        + mongoDBConfig.getHost() + "/" + mongoDBConfig.getDatabase() + "?" + mongoDBConfig.getOptions();
+        log.atInfo().log(connStr);
+        return MongoClients.create(connStr);
     }
 
     @Bean
     MongoTemplate createMongoTemplate() {
-        return new MongoTemplate(createMongoClient(), "perfsbcp3_sbcp_order");
+        return new MongoTemplate(createMongoClient(), mongoDBConfig.getDatabase());
     }
 
     @Bean
     MongoDatabase getDatabase() {
-        return createMongoClient().getDatabase("perfsbcp3_sbcp_order");
+        return createMongoClient().getDatabase(mongoDBConfig.getDatabase());
     }
 
     @Bean
     MongoDatabaseFactory getMongoDatabaseFactory() {
-        return new SimpleMongoClientDatabaseFactory(createMongoClient(), "perfsbcp3_sbcp_order");
+        return new SimpleMongoClientDatabaseFactory(createMongoClient(), mongoDBConfig.getDatabase());
     }
 
     @Bean
