@@ -1,25 +1,9 @@
 spring:
   application:
     name: cafe-order
-  kafka:
-    admin:
-      auto-create: true
-    bootstrap-servers: 127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094
-    producer:
-      client-id: cafe-order-producer
-      bootstrap-servers: 127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094
-      properties:
-        enable:
-          idempotence: false
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-mongodb:
-  host: 127.0.0.1:27017
-  protocol: mongodb
-  credentials: mongoadmin:secret
-  options: retryWrites=true&authSource=admin
-  database: order
 management:
+  server:
+    port: 1080
   endpoint:
     health:
       probes:
@@ -42,13 +26,4 @@ management:
       enabled: true
   tracing:
     enabled: true
-  otlp:
-    logging:
-      export:
-        enabled: true
-      endpoint: http://127.0.0.1:4317/otlp
-    metrics:
-      export:
-        enabled: true
-    
   

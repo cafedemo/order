@@ -10,6 +10,20 @@ services:
       - ./ops/obs/tempo-data:/var/lib/tempo
     networks:
     - cafe
+  appsvc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: appsvc
+    ports:
+      - "8080:8080"
+    depends_on:
+    - kafka1
+    - kafka2
+    - kafka3
+    - mongodb
+    networks:
+      - cafe
   fluentbit:
     image: fluent/fluent-bit
     container_name: fluentbit
