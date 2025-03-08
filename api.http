@@ -11,22 +11,22 @@ Content-Type: application/json
 Accept: application/json
 
 {
-    "customerId": "Order 2",
-    "orderId": "order2",
-    "orderStatus": "Initial2",
-    "baristaId": "barista2",
+    "customerId": "Order 1",
+    "orderId": "order1",
+    "orderStatus": "Initial1",
+    "baristaId": "barista1",
     "orderItems": [
         {
-            "itemId": "item1",
+            "itemId": "item4",
             "quantity": 1,
             "price": 10,
-            "itemName": "Item 1"
+            "itemName": "Item 4"
         },
         {
-            "itemId": "item2",
+            "itemId": "item5",
             "quantity": 1,
             "price": 10,
-            "itemName": "Item 2"
+            "itemName": "Item 5"
         }
     ]
 }

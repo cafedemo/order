@@ -4,18 +4,12 @@ mongodb:
   credentials: mongoadmin:secret
   options: retryWrites=true&authSource=admin
   database: order
-spring:
-  kafka:
-    admin:
-      auto-create: true
-    bootstrap-servers: kafka1:9092,kafka2:9093,kafka3:9094
-    producer:
-      client-id: cafe-order-producer
-      properties:
-        enable:
-          idempotence: false
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+kafka:
+  bootstrap-servers: kafka1:9092,kafka2:9093,kafka3:9094
+  producer:
+    client-id: cafe-order-producer
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
 management:
   otlp:
     logging:

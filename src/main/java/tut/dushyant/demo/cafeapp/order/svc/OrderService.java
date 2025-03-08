@@ -1,12 +1,15 @@
 package tut.dushyant.demo.cafeapp.order.svc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import org.apache.kafka.clients.producer.Producer;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.bson.Document;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -15,18 +18,20 @@ import tut.dushyant.demo.cafeapp.order.util.OrderCafeException;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 @Service
+@Slf4j
 public class OrderService {
 
-    private final Producer<String, String> producer;
+    private final KafkaTemplate<String, String> kafkaTemplate;
     private final MongoDatabase mongoDatabase;
     private final TransactionTemplate transactionTemplate;
 
-    public OrderService(ProducerFactory<String, String> producerFactory,
+    public OrderService(KafkaTemplate<String, String> kafkaTemplate,
                         MongoDatabase mongoDatabase,
                         PlatformTransactionManager transactionManager) {
-        this.producer = producerFactory.createProducer();
+        this.kafkaTemplate = kafkaTemplate;
         this.mongoDatabase = mongoDatabase;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setTimeout(30);
@@ -48,16 +53,26 @@ public class OrderService {
                     ).asObjectId().getValue());
 
             // send message to kafka
-            producer.send(new ProducerRecord<>(
-                    "order-topic",
-                    orderDetails.getOrderId(),
-                    orderDetails.toString()
-            ), (metadata, exception) -> {
-                if (exception != null) {
-                    producer.abortTransaction();
-                    throw new OrderCafeException("Failed to send message to Kafka", exception);
-                }
-            });
+            try {
+                // convert to json
+                String orderDetailsJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(orderDetails);
+                kafkaTemplate.send(new ProducerRecord<>(
+                        "order-topic",
+                        orderDetails.getOrderId(),
+                        orderDetailsJson
+                )).thenAcceptAsync(result -> {
+                    if (result != null) {
+                        log.atInfo().log("Message sent to kafka");
+                    } else {
+                        // this should not happen. If message send is failed, kafka should throw exception
+                        throw new OrderCafeException("Failed to send message to kafka ");
+                    }
+                }).exceptionally(ex -> {
+                    throw new OrderCafeException("Failed to send message to kafka", ex);
+                }).get();
+            } catch (ExecutionException | JsonProcessingException | InterruptedException e) {
+                throw new OrderCafeException("Failed to send message to kafka", e);
+            }
 
             return orderDetails;
         });
