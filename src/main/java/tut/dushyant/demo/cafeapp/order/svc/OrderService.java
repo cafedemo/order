@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.bson.Document;
+import org.springframework.context.ApplicationContext;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -21,29 +22,42 @@ import tut.dushyant.demo.cafeapp.order.util.OrderCafeException;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 @Service
 @Slf4j
 public class OrderService {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final MongoDatabase mongoDatabase;
-    private final TransactionTemplate transactionTemplate;
+    private KafkaTemplate<String, String> kafkaTemplate = null;
+    private MongoDatabase mongoDatabase = null;
+    @SuppressWarnings("unused")
+    private TransactionTemplate transactionTemplate = null;
+    @SuppressWarnings("unused")
+    private final ApplicationContext applicationContext;
     private final MongoDBConfig mongoDBConfig;
     private final KafkaConfig kafkaConfig;
 
-    public OrderService(KafkaTemplate<String, String> kafkaTemplate,
-                        MongoDatabase mongoDatabase,
-                        PlatformTransactionManager transactionManager,
-                        KafkaConfig kafkaConfig,
-                        MongoDBConfig mongoDBConfig) {
-        this.kafkaTemplate = kafkaTemplate;
-        this.mongoDatabase = mongoDatabase;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.transactionTemplate.setTimeout(30);
-        this.mongoDBConfig = mongoDBConfig;
+    @SuppressWarnings("unchecked")
+    public OrderService(KafkaConfig kafkaConfig,
+                        MongoDBConfig mongoDBConfig,
+                        ApplicationContext applicationContext) {
         this.kafkaConfig = kafkaConfig;
+        this.mongoDBConfig = mongoDBConfig;
+        this.applicationContext = applicationContext;
+
+        if(kafkaConfig.isEnabled() && kafkaTemplate == null) {
+            this.kafkaTemplate = Optional.ofNullable(applicationContext.getBean(KafkaTemplate.class))
+                    .orElseThrow(() -> new OrderCafeException("Kafka template not found"));
+        }
+        if(mongoDBConfig.isEnabled() && mongoDatabase == null) {
+            this.mongoDatabase = Optional.ofNullable(applicationContext.getBean(MongoDatabase.class))
+                    .orElseThrow(() -> new OrderCafeException("Mongo database not found"));
+            this.transactionTemplate = new TransactionTemplate(
+                    Optional.ofNullable(applicationContext.getBean(PlatformTransactionManager.class))
+                            .orElseThrow(() -> new OrderCafeException("Transaction manager not found"))
+            );
+        }
     }
 
     /**
@@ -52,49 +66,45 @@ public class OrderService {
      * If any of mongo or Kafka fails, it will rollback the transaction.
      */
     public OrderDetails placeOrder(OrderDetails orderDetails) {
-        return this.transactionTemplate.execute(status -> {
+        if (!kafkaConfig.isEnabled() && !mongoDBConfig.isEnabled()) {
+            throw new OrderCafeException("None of the databases are enabled");
+        }
 
-            if (!kafkaConfig.isEnabled() && !mongoDBConfig.isEnabled()) {
-                throw new OrderCafeException("None of the databases are enabled");
+        if (kafkaConfig.isEnabled()) {
+            // send message to kafka
+            try {
+                // convert to json
+                String orderDetailsJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(orderDetails);
+                kafkaTemplate.send(new ProducerRecord<>(
+                        "order-topic",
+                        orderDetails.getOrderId(),
+                        orderDetailsJson
+                )).thenAcceptAsync(result -> {
+                    if (result != null) {
+                        log.atInfo().log("Message sent to kafka");
+                    } else {
+                        // this should not happen. If message send is failed, kafka should throw exception
+                        throw new OrderCafeException("Failed to send message to kafka ");
+                    }
+                }).exceptionally(ex -> {
+                    throw new OrderCafeException("Failed to send message to kafka", ex);
+                }).get();
+            } catch (ExecutionException | JsonProcessingException | InterruptedException e) {
+                throw new OrderCafeException("Failed to send message to kafka", e);
             }
+        }
 
-            //If mongoDB is enabled, then call the below method
-            if (mongoDBConfig.isEnabled()) {
-                // add order to mongo
-                orderDetails.setId(
-                    Objects.requireNonNull(
-                            mongoDatabase.getCollection("orders")
-                                    .insertOne(orderDetails.toDocument())
-                                    .getInsertedId()
-                    ).asObjectId().getValue());
-            }
+         if (mongoDBConfig.isEnabled()) {
+            // add order to mongo
+            orderDetails.setId(
+                Objects.requireNonNull(
+                        mongoDatabase.getCollection("orders")
+                                .insertOne(orderDetails.toDocument())
+                                .getInsertedId()
+                ).asObjectId().getValue());
+        }
 
-            if (kafkaConfig.isEnabled()) {
-                // send message to kafka
-                try {
-                    // convert to json
-                    String orderDetailsJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(orderDetails);
-                    kafkaTemplate.send(new ProducerRecord<>(
-                            "order-topic",
-                            orderDetails.getOrderId(),
-                            orderDetailsJson
-                    )).thenAcceptAsync(result -> {
-                        if (result != null) {
-                            log.atInfo().log("Message sent to kafka");
-                        } else {
-                            // this should not happen. If message send is failed, kafka should throw exception
-                            throw new OrderCafeException("Failed to send message to kafka ");
-                        }
-                    }).exceptionally(ex -> {
-                        throw new OrderCafeException("Failed to send message to kafka", ex);
-                    }).get();
-                } catch (ExecutionException | JsonProcessingException | InterruptedException e) {
-                    throw new OrderCafeException("Failed to send message to kafka", e);
-                }
-            }
-            
-            return orderDetails;
-        });
+        return orderDetails;
     }
 
     public OrderDetails getOrderDetails(String orderId) {

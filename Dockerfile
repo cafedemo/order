@@ -1,7 +1,7 @@
 FROM gradle:jdk21-ubi-minimal AS build
 VOLUME /home/gradle/.gradle
 ADD . /app
-RUN cd /app && ./gradlew clean bootJar --no-daemon --stacktrace
+RUN cd /app && gradle clean bootJar --no-daemon --stacktrace
 WORKDIR /app
 
 FROM alpine:latest

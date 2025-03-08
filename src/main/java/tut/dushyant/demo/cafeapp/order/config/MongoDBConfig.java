@@ -12,5 +12,5 @@ public class MongoDBConfig {
     private String protocol;
     private String credentials;
     private String database;
-    private boolean enabled;
+    private boolean enabled = false;
 }

@@ -5,6 +5,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.util.StringUtils;
@@ -25,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 @RestController
 @RequestMapping("/check")
+@ConditionalOnProperty(prefix = "app", name = "healthcheck", havingValue = "true")
 public class HealthCheckKafka {
 
     private final boolean checkFlag;
