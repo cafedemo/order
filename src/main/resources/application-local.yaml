@@ -1,10 +1,12 @@
 mongodb:
+  enabled: true
   host: localhost:27017
   protocol: mongodb
   credentials: mongoadmin:secret
   options: retryWrites=true&authSource=admin
   database: order
 kafka:
+  enabled: true
   bootstrap-servers: 127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094
   producer:
     client-id: cafe-order-producer

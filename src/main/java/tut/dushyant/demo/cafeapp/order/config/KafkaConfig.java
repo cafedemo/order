@@ -11,6 +11,7 @@ import lombok.Data;
 public class KafkaConfig {
     private List<String> bootstrapServers;
     private Producer producer;
+    private boolean enabled;
 
     @Data
     public static class Producer {
