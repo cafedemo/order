@@ -1,6 +1,6 @@
 mongodb:
   enabled: true
-  host: 127.0.0.1:27017
+  host: mongodb:27017
   protocol: mongodb
   credentials: mongoadmin:secret
   options: retryWrites=true&authSource=admin

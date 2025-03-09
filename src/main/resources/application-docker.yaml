@@ -1,10 +1,3 @@
-mongodb:
-  enabled: true
-  host: mongodb:27017
-  protocol: mongodb
-  credentials: mongoadmin:secret
-  options: retryWrites=true&authSource=admin
-  database: order
 management:
   otlp:
     logging:
